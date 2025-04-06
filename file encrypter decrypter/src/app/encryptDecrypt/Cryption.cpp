@@ -1,28 +1,53 @@
 #include "Cryption.hpp"
 #include "../processes/Task.hpp"
-#include "../fileHandling/ReadEnv.cpp"
+#include <iostream>
+#include <stdexcept>
+#include <fstream>
 
-int executeCryption(const std::string& taskData) {
-    Task task = Task::fromString(taskData);
-    ReadEnv env;
-    std::string envKey = env.getenv();
-    int key = std::stoi(envKey);
-    if (task.action == Action::ENCRYPT) {
-        char ch;
-        while (task.f_stream.get(ch)) {
-            ch = (ch + key) % 256;
-            task.f_stream.seekp(-1, std::ios::cur);
-            task.f_stream.put(ch);
+int executeCryption(const std::string& taskData, int key) {
+    std::string filePathForError = "Unknown path";
+    try {
+        Task task = Task::fromString(taskData);
+        filePathForError = task.filePath;
+
+        std::fstream f_stream = task.openFileStream();
+
+        if (task.action == Action::ENCRYPT) {
+            char ch;
+            while (f_stream.get(ch)) {
+                unsigned char originalChar = static_cast<unsigned char>(ch);
+                unsigned char encryptedChar = (originalChar + key);
+
+                f_stream.seekp(-1, std::ios::cur);
+                f_stream.put(static_cast<char>(encryptedChar));
+                f_stream.seekp(0, std::ios::cur);
+            }
+        } else { // DECRYPT
+            char ch;
+            while (f_stream.get(ch)) {
+                unsigned char encryptedChar = static_cast<unsigned char>(ch);
+                unsigned char decryptedChar = (encryptedChar - key);
+
+                f_stream.seekp(-1, std::ios::cur);
+                f_stream.put(static_cast<char>(decryptedChar));
+                f_stream.seekp(0, std::ios::cur);
+            }
         }
-        task.f_stream.close();
-    } else {
-        char ch;
-        while (task.f_stream.get(ch)) {
-            ch = (ch - key + 256) % 256;
-            task.f_stream.seekp(-1, std::ios::cur);
-            task.f_stream.put(ch);
+
+        if (f_stream.bad()) {
+             std::cerr << "Error: Stream error after processing file: " << filePathForError << std::endl;
+             return 2;
+        } else if (!f_stream.eof()) {
+             std::cerr << "Warning: Processing stopped before EOF for file: " << filePathForError << std::endl;
         }
-        task.f_stream.close();
+
+        return 0;
+
+    } catch (const std::runtime_error& e) {
+        std::cerr << "Error processing file '" << filePathForError << "' (Task Data: '" << taskData << "'): " << e.what() << std::endl;
+        return 1;
+    } catch (const std::exception& e) {
+        std::cerr << "Unexpected error processing file '" << filePathForError << "' (Task Data: '" << taskData << "'): " << e.what() << std::endl;
+        return 1;
     }
-    return 0;
 }
