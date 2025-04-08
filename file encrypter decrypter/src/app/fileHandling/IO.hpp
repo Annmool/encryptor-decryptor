@@ -1,21 +1,24 @@
-#ifndef I0_HPP
-#define I0_HPP
+#ifndef IO_HPP
+#define IO_HPP
 
-#include<fstream>
-#include<string>
-#include<iostream>
+#include <fstream>
+#include <string>
+#include <iostream>
+#include <stdexcept>
 
-class IO{
-    public: 
-          IO(const std::string &file_path);
-          ~IO();
-          std::fstream getFileStream();
+class IO {
+public:
+    IO(const std::string& file_path);
+    ~IO();
+    std::fstream getFileStream();
+    IO(const IO&) = delete;
+    IO& operator=(const IO&) = delete;
+    IO(IO&&) = default;
+    IO& operator=(IO&&) = default;
 
-   private:
-          std::fstream file_stream;
+private:
+    std::fstream file_stream;
+    std::string path_name;
 };
 
-
-
-#endif
-
+#endif // IO_HPP
